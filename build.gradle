@@ -1,0 +1,40 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+// Load dependencies
+apply from: 'dependencies.gradle'
+
+
+buildscript {
+    // Load dependencies - Gradle cannot handle with external properties inside of buildscript
+    // So we need to apply external file here again
+    apply from: 'dependencies.gradle'
+
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath gradlePlugins.android
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+
+    version = versions.libVersion
+
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = versions.gradle
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

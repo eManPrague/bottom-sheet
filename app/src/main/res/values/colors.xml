@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_status_bar_transparent">#00ebebeb</color>
+    <color name="color_status_bar_full">#ebebeb</color>
+    <color name="color_navigation_bar">#ebebeb</color>
+    <color name="color_navigation_bar_divider">#e6e6e6</color>
+
+    <color name="grey">#C2C2C2</color>
+    <color name="activity_background">#eeeeee</color>
+</resources>
