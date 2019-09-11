@@ -31,10 +31,6 @@ allprojects {
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = versions.gradle
-}
-
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
