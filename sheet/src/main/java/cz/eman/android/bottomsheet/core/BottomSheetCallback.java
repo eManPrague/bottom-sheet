@@ -18,7 +18,7 @@ public interface BottomSheetCallback {
      *                    {@link BottomSheetState#STATE_SETTLING}, {@link BottomSheetState#STATE_EXPANDED},
      *                    {@link BottomSheetState#STATE_COLLAPSED}, or {@link BottomSheetState#STATE_HIDDEN}.
      */
-    void onStateChanged(@NonNull View bottomSheet, int newState);
+    void onStateChanged(@NonNull View bottomSheet, BottomSheetState newState);
 
     /**
      * Called when the bottom sheet is being dragged.

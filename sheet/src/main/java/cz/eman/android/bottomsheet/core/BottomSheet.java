@@ -60,14 +60,13 @@ public interface BottomSheet {
     /**
      * @return current state of the bottom sheet
      */
-    @BottomSheetTwoStatesBehaviour.State
-    int getState();
+    BottomSheetState getState();
 
     /**
      * Sets state to bottom sheet
      * @param state state
      */
-    void setState(final @BottomSheetTwoStatesBehaviour.State int state);
+    void setState(final BottomSheetState state);
 
     /**
      * Animates sheet to given height. After animation is done, visible part of the sheet

@@ -55,11 +55,6 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
 
     private int initialHeight;
 
-    @RestrictTo(LIBRARY_GROUP)
-    @IntDef({BottomSheetState.STATE_EXPANDED, BottomSheetState.STATE_COLLAPSED, BottomSheetState.STATE_DRAGGING, BottomSheetState.STATE_SETTLING, BottomSheetState.STATE_HIDDEN})
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface State {}
-
     /**
      * Peek at the 16:9 ratio keyline of its parent.
      *
@@ -90,8 +85,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
 
     private boolean mSkipCollapsed;
 
-    @State
-    int mState = BottomSheetState.STATE_COLLAPSED;
+    private BottomSheetState mState = BottomSheetState.STATE_COLLAPSED;
 
     ViewDragHelper mViewDragHelper;
 
@@ -351,7 +345,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
         int currentTop = child.getTop();
         int pxFromBottom = child.getHeight() - currentTop;
 
-        @State int targetState;
+        BottomSheetState targetState;
         if (mLastNestedScrollDy > 0) { // Moving up
 
             if (pxFromBottom > peekHeightBig) {
@@ -531,7 +525,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
      * @param state One of {@link BottomSheetState#STATE_COLLAPSED}, {@link BottomSheetState#STATE_EXPANDED}, or
      *              {@link BottomSheetState#STATE_HIDDEN}.
      */
-    public final void setState(final @State int state) {
+    public final void setState(final BottomSheetState state) {
         if (state == mState && state != BottomSheetState.STATE_COLLAPSED) {
             return;
         }
@@ -589,12 +583,11 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
      * @return One of {@link BottomSheetState#STATE_EXPANDED}, {@link BottomSheetState#STATE_COLLAPSED}, {@link BottomSheetState#STATE_DRAGGING},
      * and {@link BottomSheetState#STATE_SETTLING}.
      */
-    @BottomSheetTwoStatesBehaviour.State
-    public final int getState() {
+    public final BottomSheetState getState() {
         return mState;
     }
 
-    void setStateInternal(@State int state) {
+    void setStateInternal(BottomSheetState state) {
         if (mState == state) {
             return;
         }
@@ -646,7 +639,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
         return VelocityTrackerCompat.getYVelocity(mVelocityTracker, mActivePointerId);
     }
 
-    void startSettlingAnimation(View child, int state) {
+    void startSettlingAnimation(View child, BottomSheetState state) {
         int top;
         if (state == BottomSheetState.STATE_COLLAPSED) {
             top = child.getHeight() - peekHeightBig;
@@ -726,7 +719,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
             int currentTop = releasedChild.getTop();
             int pxFromBottom = releasedChild.getHeight() - currentTop;
 
-            @State int targetState;
+            BottomSheetState targetState;
             if (yvel < 0) { // Moving up
 
                 if (pxFromBottom > peekHeightBig) {
@@ -817,10 +810,9 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
 
         private final View mView;
 
-        @State
-        private final int mTargetState;
+        private final BottomSheetState mTargetState;
 
-        SettleRunnable(View view, @State int targetState) {
+        SettleRunnable(View view, BottomSheetState targetState) {
             mView = view;
             mTargetState = targetState;
         }
@@ -836,8 +828,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
     }
 
     protected static class SavedState extends AbsSavedState {
-        @State
-        final int state;
+        final BottomSheetState state;
 
         final int peekHeightBig;
         final int peekHeightSmall;
@@ -850,13 +841,13 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
         public SavedState(Parcel source, ClassLoader loader) {
             super(source, loader);
             //noinspection ResourceType
-            state = source.readInt();
+            state = BottomSheetState.valueOf(source.readString());
             peekHeightBig = source.readInt();
             peekHeightSmall = source.readInt();
             peekHeight = source.readInt();
         }
 
-        public SavedState(Parcelable superState, @State int state, int peekBig, int peekSmall, int peek) {
+        public SavedState(Parcelable superState, BottomSheetState state, int peekBig, int peekSmall, int peek) {
             super(superState);
             this.state = state;
             this.peekHeightBig = peekBig;
@@ -867,7 +858,7 @@ public class BottomSheetTwoStatesBehaviour<V extends View> extends CoordinatorLa
         @Override
         public void writeToParcel(Parcel out, int flags) {
             super.writeToParcel(out, flags);
-            out.writeInt(state);
+            out.writeString(state.name());
             out.writeInt(peekHeightBig);
             out.writeInt(peekHeightSmall);
             out.writeInt(peekHeight);

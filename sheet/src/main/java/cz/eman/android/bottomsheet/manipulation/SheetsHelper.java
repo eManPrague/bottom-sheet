@@ -181,7 +181,7 @@ public class SheetsHelper {
     private BottomSheetCallback getDefaultCallback() {
         return new BottomSheetCallback() {
             @Override
-            public void onStateChanged(@NonNull View bottomSheet, @BottomSheetTwoStatesBehaviour.State int newState) {
+            public void onStateChanged(@NonNull View bottomSheet, BottomSheetState newState) {
                 // Disabling map moving when sheet is expanded
                 SheetsHelper.this.onStateChanged(newState);
             }
@@ -199,7 +199,7 @@ public class SheetsHelper {
      *
      * @param newState current state of bottom sheet
      */
-    private void onStateChanged(@BottomSheetTwoStatesBehaviour.State int newState) {
+    private void onStateChanged(BottomSheetState newState) {
         if (bottomSheetView != null && sheetsHelperView != null) {
             sheetsHelperView.setMapGesturesEnabled(newState != BottomSheetState.STATE_EXPANDED);
             sheetsHelperView.setMapVisible(newState != BottomSheetState.STATE_EXPANDED);
@@ -282,8 +282,7 @@ public class SheetsHelper {
         }
     }
 
-    @BottomSheetTwoStatesBehaviour.State
-    public int getState() {
+    public BottomSheetState getState() {
         if (currentSheet != null) {
             return currentSheet.getState();
         }
@@ -291,7 +290,7 @@ public class SheetsHelper {
         return BottomSheetState.STATE_HIDDEN;
     }
 
-    public void setState(@BottomSheetTwoStatesBehaviour.State int newState) {
+    public void setState(BottomSheetState newState) {
         if (currentSheet != null) {
             currentSheet.setState(newState);
         }
