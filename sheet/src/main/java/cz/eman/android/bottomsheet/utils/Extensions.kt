@@ -3,7 +3,7 @@ package cz.eman.android.bottomsheet.utils
 import android.app.Activity
 import android.content.Context
 import android.os.Build
-import android.support.annotation.ColorInt
+import androidx.annotation.ColorInt
 import android.view.View
 
 /**
@@ -18,7 +18,7 @@ fun Context.getStatusBarHeight(): Int {
 }
 
 fun Context.getToolbarHeight(): Int {
-    return this.resources.getDimensionPixelSize(android.support.v7.appcompat.R.dimen.abc_action_bar_default_height_material)
+    return this.resources.getDimensionPixelSize(androidx.appcompat.R.dimen.abc_action_bar_default_height_material)
 }
 
 /**

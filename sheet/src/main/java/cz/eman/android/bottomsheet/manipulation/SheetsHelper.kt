@@ -1,7 +1,7 @@
 package cz.eman.android.bottomsheet.manipulation
 
 import android.content.Context
-import android.support.v4.view.ViewCompat
+import androidx.core.view.ViewCompat
 import android.view.View
 
 import cz.eman.android.bottomsheet.R
@@ -254,7 +254,7 @@ class SheetsHelper private constructor(private val sheetsHelperView: SheetsHelpe
     fun setMapPaddingAndTranslation() {
         if (currentSheet != null && bottomSheetView != null) {
             // View has not gone through full layout cycle, wait till this one is done
-            if (!ViewCompat.isLaidOut(bottomSheetView)) {
+            if (!ViewCompat.isLaidOut(bottomSheetView!!)) {
                 // Adding onLayoutChangedListener does not work properly cause Sheet reacts after view is laid out
                 bottomSheetView!!.postDelayed({ this.setMapPaddingAndTranslation() }, 75)
             } else {

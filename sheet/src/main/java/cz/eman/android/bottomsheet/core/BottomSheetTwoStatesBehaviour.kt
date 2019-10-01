@@ -19,16 +19,17 @@ package cz.eman.android.bottomsheet.core
 import android.content.Context
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.annotation.VisibleForTesting
-import android.support.design.widget.CoordinatorLayout
-import android.support.v4.os.ParcelableCompat
-import android.support.v4.os.ParcelableCompatCreatorCallbacks
-import android.support.v4.view.AbsSavedState
-import android.support.v4.view.NestedScrollingChild
-import android.support.v4.view.VelocityTrackerCompat
-import android.support.v4.view.ViewCompat
+import androidx.annotation.VisibleForTesting
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.os.ParcelableCompat
+import androidx.core.os.ParcelableCompatCreatorCallbacks
+import androidx.customview.view.AbsSavedState
+import androidx.core.view.NestedScrollingChild
+import androidx.core.view.VelocityTrackerCompat
+import androidx.core.view.ViewCompat
 import android.util.AttributeSet
 import android.view.*
+import cz.eman.android.bottomsheet.R
 import java.lang.ref.WeakReference
 import kotlin.math.abs
 import kotlin.math.max
@@ -202,16 +203,16 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
 
     init {
         val attr = context.obtainStyledAttributes(attrs,
-                android.support.design.R.styleable.BottomSheetBehavior_Layout)
-        val value = attr.peekValue(android.support.design.R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight)
+                R.styleable.BottomSheetBehavior_Layout)
+        val value = attr.peekValue(R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight)
         if (value != null && value.data == PEEK_HEIGHT_AUTO) {
             setPeekHeight(value.data)
         } else {
             setPeekHeight(attr.getDimensionPixelSize(
-                    android.support.design.R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight, PEEK_HEIGHT_AUTO))
+                    R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight, PEEK_HEIGHT_AUTO))
         }
-        setHideable(attr.getBoolean(android.support.design.R.styleable.BottomSheetBehavior_Layout_behavior_hideable, false))
-        skipCollapsed = attr.getBoolean(android.support.design.R.styleable.BottomSheetBehavior_Layout_behavior_skipCollapsed,
+        setHideable(attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_hideable, false))
+        skipCollapsed = attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_skipCollapsed,
                 false)
         attr.recycle()
         val configuration = ViewConfiguration.get(context)
@@ -219,13 +220,16 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         dragEnabled = true
     }
 
-    override fun onSaveInstanceState(parent: CoordinatorLayout?, child: V?): Parcelable {
-        return SavedState(super.onSaveInstanceState(parent, child), state, peekHeightBig, peekHeightSmall, initialHeight)
+    override fun onSaveInstanceState(parent: CoordinatorLayout, child: V): Parcelable? {
+        super.onSaveInstanceState(parent, child)?.run {
+            return SavedState(this, state, peekHeightBig, peekHeightSmall, initialHeight)
+        }
+        return null
     }
 
-    override fun onRestoreInstanceState(parent: CoordinatorLayout?, child: V?, state: Parcelable?) {
-        val savedState = state as SavedState?
-        super.onRestoreInstanceState(parent, child, savedState!!.superState)
+    override fun onRestoreInstanceState(parent: CoordinatorLayout, child: V, state: Parcelable) {
+        val savedState = state as SavedState
+        super.onRestoreInstanceState(parent, child, savedState.superState!!)
 
         // Intermediate states are restored as collapsed state
         this.state = if (savedState.state === BottomSheetState.STATE_DRAGGING
@@ -241,22 +245,21 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         initialHeight = savedState.peekHeight
     }
 
-    override fun onLayoutChild(parent: CoordinatorLayout?, child: V?, layoutDirection: Int): Boolean {
+    override fun onLayoutChild(parent: CoordinatorLayout, child: V, layoutDirection: Int): Boolean {
         if (ViewCompat.getFitsSystemWindows(parent) && !ViewCompat.getFitsSystemWindows(child)) {
-            child?.fitsSystemWindows = true
+            child.fitsSystemWindows = true
         }
 
-        val savedTop = child!!.top
+        val savedTop = child.top
         // First let the parent lay it out
-        parent!!.onLayoutChild(child, layoutDirection)
+        parent.onLayoutChild(child, layoutDirection)
         // Offset the bottom sheet
         mParentHeight = parent.height
 
         val peekHeight: Int
         if (peekHeightAuto) {
             if (peekHeightMin == 0) {
-                peekHeightMin = parent.resources.getDimensionPixelSize(
-                        android.support.design.R.dimen.design_bottom_sheet_peek_height_min)
+                peekHeightMin = parent.resources.getDimensionPixelSize(R.dimen.design_bottom_sheet_peek_height_min)
             }
             peekHeight = max(peekHeightMin, mParentHeight - parent.width * 9 / 16)
         } else {
@@ -300,12 +303,12 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         return null
     }
 
-    override fun onInterceptTouchEvent(parent: CoordinatorLayout?, child: V, event: MotionEvent?): Boolean {
+    override fun onInterceptTouchEvent(parent: CoordinatorLayout, child: V, event: MotionEvent): Boolean {
         if (!child.isShown || !dragEnabled) {
             ignoreEvents = true
             return false
         }
-        val action = event?.action
+        val action = event.action
         // Record the velocity
         if (action == MotionEvent.ACTION_DOWN) {
             reset()
@@ -328,11 +331,11 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
                 val initialX = event.x.toInt()
                 initialY = event.y.toInt()
                 val scroll = nestedScrollingChildRef?.get()
-                if (scroll != null && parent!!.isPointInChildBounds(scroll, initialX, initialY)) {
+                if (scroll != null && parent.isPointInChildBounds(scroll, initialX, initialY)) {
                     activePointerId = event.getPointerId(event.actionIndex)
                     touchingScrollingChild = true
                 }
-                ignoreEvents = activePointerId == MotionEvent.INVALID_POINTER_ID && !parent!!.isPointInChildBounds(child, initialX, initialY)
+                ignoreEvents = activePointerId == MotionEvent.INVALID_POINTER_ID && !parent.isPointInChildBounds(child, initialX, initialY)
             }
         }
         if (!ignoreEvents && viewDragHelper!!.shouldInterceptTouchEvent(event)) {
@@ -344,15 +347,15 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         val scroll = nestedScrollingChildRef?.get()
         return action == MotionEvent.ACTION_MOVE && scroll != null &&
                 !ignoreEvents && state !== BottomSheetState.STATE_DRAGGING &&
-                !parent!!.isPointInChildBounds(scroll, event.x.toInt(), event.y.toInt()) &&
+                !parent.isPointInChildBounds(scroll, event.x.toInt(), event.y.toInt()) &&
                 abs(initialY - event.y) > viewDragHelper!!.touchSlop
     }
 
-    override fun onTouchEvent(parent: CoordinatorLayout?, child: V, event: MotionEvent?): Boolean {
+    override fun onTouchEvent(parent: CoordinatorLayout, child: V, event: MotionEvent): Boolean {
         if (!child.isShown || !dragEnabled) {
             return false
         }
-        val action = event?.action
+        val action = event.action
         if (state === BottomSheetState.STATE_DRAGGING && action == MotionEvent.ACTION_DOWN) {
             return true
         }

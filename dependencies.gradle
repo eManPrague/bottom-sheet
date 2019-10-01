@@ -30,7 +30,7 @@ ext {
     ]
 
     // constants
-    testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     gradlePlugins = [
             android: "com.android.tools.build:gradle:${versions.gradleBuildTools}",
@@ -39,8 +39,8 @@ ext {
 
     //Support Libraries dependencies
     supportDependencies = [
-            appCompat: "com.android.support:appcompat-v7:${versions.supportLib}",
-            design   : "com.android.support:design:${versions.supportLib}"
+            appCompat: 'androidx.appcompat:appcompat:1.0.0',
+            design   : 'com.google.android.material:material:1.0.0'
     ]
 
     //Kotlin dependencies
