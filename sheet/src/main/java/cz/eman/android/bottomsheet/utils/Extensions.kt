@@ -40,7 +40,7 @@ fun Activity.setDarkStatusBarIcons(show: Boolean) {
 /**
  * Sets color to status bar
  */
-fun Activity.setStatusBarColor(@ColorInt color: Int) {
+fun Activity.updateStatusBarColor(@ColorInt color: Int) {
     this.window.statusBarColor = color
 }
 

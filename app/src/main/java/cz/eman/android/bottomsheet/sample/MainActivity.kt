@@ -1,5 +1,6 @@
 package cz.eman.android.bottomsheet.sample
 
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
@@ -10,7 +11,8 @@ import android.view.ViewGroup
 import cz.eman.android.bottomsheet.core.BottomSheetTwoStatesBehaviour
 import cz.eman.android.bottomsheet.manipulation.SheetsHelper
 import cz.eman.android.bottomsheet.manipulation.SheetsHelperView
-import cz.eman.android.bottomsheet.utils.WindowCompat
+import cz.eman.android.bottomsheet.utils.setDarkStatusBarIcons
+import cz.eman.android.bottomsheet.utils.updateStatusBarColor
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), SheetsHelperView {
@@ -72,11 +74,11 @@ class MainActivity : AppCompatActivity(), SheetsHelperView {
     }
 
     override fun showDarkStatusBarIcons(show: Boolean) {
-        WindowCompat.setDarkStatusBarIcons(this, show)
+        this.setDarkStatusBarIcons(show)
     }
 
     override fun setStatusBarColor(color: Int) {
-        WindowCompat.setStatusBarColor(this, color)
+        this.updateStatusBarColor(color)
     }
 
     override fun setMapPadding(left: Int, top: Int, right: Int, bottom: Int) {
