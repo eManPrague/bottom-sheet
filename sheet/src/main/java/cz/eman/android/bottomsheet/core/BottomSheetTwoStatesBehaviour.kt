@@ -17,19 +17,16 @@
 package cz.eman.android.bottomsheet.core
 
 import android.content.Context
-import android.os.Parcel
 import android.os.Parcelable
-import androidx.annotation.VisibleForTesting
-import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.os.ParcelableCompat
-import androidx.core.os.ParcelableCompatCreatorCallbacks
-import androidx.customview.view.AbsSavedState
-import androidx.core.view.NestedScrollingChild
-import androidx.core.view.VelocityTrackerCompat
-import androidx.core.view.ViewCompat
 import android.util.AttributeSet
-import android.view.*
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.View
+import android.view.ViewConfiguration
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.ViewCompat
 import cz.eman.android.bottomsheet.R
+import cz.eman.android.bottomsheet.utils.findFirstScrollingChild
 import java.lang.ref.WeakReference
 import kotlin.math.abs
 import kotlin.math.max
@@ -42,24 +39,6 @@ import kotlin.math.max
 class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: AttributeSet)
     : CoordinatorLayout.Behavior<V>(context, attrs), BottomSheet {
 
-    private var initialHeight: Int = 0
-
-    private val maximumVelocity: Float
-
-    @get:VisibleForTesting
-    internal var peekHeightMin: Int = 0
-        private set
-
-    private var peekHeight: Int = 0
-    private var peekHeightSmall: Int = 0
-    private var peekHeightBig: Int = 0
-    private var peekHeightAuto: Boolean = false
-
-    var mMinOffset: Int = 0
-    var maxOffset: Int = 0
-
-    private var hideable: Boolean = false
-
     /**
      * Describes whether this bottom sheet should skip the collapsed state when it is being hidden
      * after it is expanded once. Setting this to true has no effect unless the sheet is hideable.
@@ -69,38 +48,61 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
      */
     var skipCollapsed: Boolean = false
 
-    private var state = BottomSheetState.STATE_COLLAPSED
+    private var peekHeightMin: Int = 0
+    private var peekHeight: Int = 0
+    private var peekHeightSmall: Int = 0
+    private var peekHeightBig: Int = 0
+    private var peekHeightAuto: Boolean = false
 
-    internal var viewDragHelper: ViewDragHelper? = null
-
-    private var ignoreEvents: Boolean = false
-
-    private var lastNestedScrollDy: Int = 0
-
-    private var nestedScrolled: Boolean = false
-
-    internal var mParentHeight: Int = 0
-
-    internal var viewRef: WeakReference<V>? = null
-
-    internal var nestedScrollingChildRef: WeakReference<View>? = null
-
-    private var callback: BottomSheetCallback? = null
-
-    private var velocityTracker: VelocityTracker? = null
-
-    internal var activePointerId: Int = 0
+    private var minOffset: Int = 0
+    private var maxOffset: Int = 0
+    private var initialHeight: Int = 0
 
     private var initialY: Int = 0
+    private var parentHeight: Int = 0
 
-    internal var touchingScrollingChild: Boolean = false
-    internal var dragEnabled: Boolean = false
+    private var hideable: Boolean = false
+    private var dragEnabled: Boolean = false
+    private var ignoreEvents: Boolean = false
+    private var touchingScrollingChild: Boolean = false
 
+    private var state = BottomSheetState.STATE_COLLAPSED
+
+    private var lastNestedScrollDy: Int = 0
+    private var nestedScrolled: Boolean = false
+
+    private var activePointerId: Int = 0
+    private var velocityTracker: VelocityTracker? = null
+    private var callback: BottomSheetCallback? = null
+    private var viewDragHelper: ViewDragHelper? = null
+
+    private var viewRef: WeakReference<V>? = null
+    private var nestedScrollingChildRef: WeakReference<View>? = null
+
+    private val maximumVelocity: Float
     private val yVelocity: Float
         get() {
-            velocityTracker!!.computeCurrentVelocity(1000, maximumVelocity)
-            return VelocityTrackerCompat.getYVelocity(velocityTracker!!, activePointerId)
+            velocityTracker?.computeCurrentVelocity(1000, maximumVelocity)
+            return velocityTracker?.getXVelocity(activePointerId) ?: 0f
         }
+
+    init {
+        val attr = context.obtainStyledAttributes(attrs, R.styleable.BottomSheetBehavior_Layout)
+        val value = attr.peekValue(R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight)
+        if (value != null && value.data == PEEK_HEIGHT_AUTO) {
+            setPeekHeight(value.data)
+        } else {
+            setPeekHeight(attr.getDimensionPixelSize(
+                    R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight, PEEK_HEIGHT_AUTO))
+        }
+        setHideable(attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_hideable, false))
+        skipCollapsed = attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_skipCollapsed,
+                false)
+        attr.recycle()
+        val configuration = ViewConfiguration.get(context)
+        maximumVelocity = configuration.scaledMaximumFlingVelocity.toFloat()
+        dragEnabled = true
+    }
 
     private val mDragCallback = object : ViewDragHelper.Callback() {
 
@@ -113,7 +115,7 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
             }
             if (state === BottomSheetState.STATE_EXPANDED && activePointerId == pointerId) {
                 val scroll = nestedScrollingChildRef?.get()
-                if (scroll != null && ViewCompat.canScrollVertically(scroll, -1)) {
+                if (scroll != null && scroll.canScrollVertically(SCROLL_DIRECTION_UP)) {
                     // Let the content scroll up
                     return false
                 }
@@ -132,60 +134,37 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         }
 
         override fun onViewReleased(releasedChild: View, xvel: Float, yvel: Float) {
-            val top: Int
-            val currentTop = releasedChild.top
-            val pxFromBottom = releasedChild.height - currentTop
+            val pxFromBottom = releasedChild.height - releasedChild.top
 
-            val targetState: BottomSheetState
-            if (yvel < 0) { // Moving up
-
-                if (pxFromBottom > peekHeightBig) {
-                    top = mMinOffset
-                    targetState = BottomSheetState.STATE_EXPANDED
-                } else {
-                    top = releasedChild.height - peekHeightBig
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                }
-            } else if (hideable && shouldHide(releasedChild, yvel)) {
-                top = mParentHeight
-                targetState = BottomSheetState.STATE_HIDDEN
+            val viewDragReleasedState = if (yvel < 0) {
+                onDragReleaseMovingUp(releasedChild, pxFromBottom)
+            } else if (shouldHide(releasedChild, yvel) && hideable) {
+                ViewDragReleasedState(
+                        top = parentHeight,
+                        targetState = BottomSheetState.STATE_HIDDEN)
             } else if (yvel == 0f) {
-
-                if (0 < pxFromBottom && pxFromBottom < peekHeightBig) {
-                    top = releasedChild.height - peekHeightSmall
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                } else if (pxFromBottom < peekHeightBig) {
-                    top = releasedChild.height - peekHeightBig
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                } else {
-                    top = mMinOffset
-                    targetState = BottomSheetState.STATE_EXPANDED
-                }
+                onNoDragRelease(releasedChild, pxFromBottom)
             } else {
-                if (0 < pxFromBottom && pxFromBottom < peekHeightBig) {
-                    top = maxOffset
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                } else {
-                    top = releasedChild.height - peekHeightBig
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                }
+                onDragReleaseMovingDown(releasedChild, pxFromBottom)
             }
 
-            if (viewDragHelper!!.settleCapturedViewAt(releasedChild.left, top)) {
+            if (viewDragHelper!!.settleCapturedViewAt(releasedChild.left, viewDragReleasedState.top)) {
                 setStateInternal(BottomSheetState.STATE_SETTLING)
                 ViewCompat.postOnAnimation(releasedChild,
-                        SettleRunnable(releasedChild, targetState))
+                        SettleRunnable(releasedChild, viewDragReleasedState.targetState))
             } else {
-                setStateInternal(targetState)
+                setStateInternal(viewDragReleasedState.targetState)
             }
         }
 
         override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
-            return constrain(top, mMinOffset, if (hideable) mParentHeight else maxOffset)
-        }
+            val max = if (hideable) parentHeight else maxOffset
 
-        internal fun constrain(amount: Int, low: Int, high: Int): Int {
-            return if (amount < low) low else if (amount > high) high else amount
+            return when {
+                top < minOffset -> minOffset
+                top > max -> max
+                else -> top
+            }
         }
 
         override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
@@ -194,30 +173,11 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
 
         override fun getViewVerticalDragRange(child: View): Int {
             return if (hideable) {
-                mParentHeight - mMinOffset
+                parentHeight - minOffset
             } else {
-                maxOffset - mMinOffset
+                maxOffset - minOffset
             }
         }
-    }
-
-    init {
-        val attr = context.obtainStyledAttributes(attrs,
-                R.styleable.BottomSheetBehavior_Layout)
-        val value = attr.peekValue(R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight)
-        if (value != null && value.data == PEEK_HEIGHT_AUTO) {
-            setPeekHeight(value.data)
-        } else {
-            setPeekHeight(attr.getDimensionPixelSize(
-                    R.styleable.BottomSheetBehavior_Layout_behavior_peekHeight, PEEK_HEIGHT_AUTO))
-        }
-        setHideable(attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_hideable, false))
-        skipCollapsed = attr.getBoolean(R.styleable.BottomSheetBehavior_Layout_behavior_skipCollapsed,
-                false)
-        attr.recycle()
-        val configuration = ViewConfiguration.get(context)
-        maximumVelocity = configuration.scaledMaximumFlingVelocity.toFloat()
-        dragEnabled = true
     }
 
     override fun onSaveInstanceState(parent: CoordinatorLayout, child: V): Parcelable? {
@@ -254,26 +214,26 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         // First let the parent lay it out
         parent.onLayoutChild(child, layoutDirection)
         // Offset the bottom sheet
-        mParentHeight = parent.height
+        parentHeight = parent.height
 
         val peekHeight: Int
         if (peekHeightAuto) {
             if (peekHeightMin == 0) {
                 peekHeightMin = parent.resources.getDimensionPixelSize(R.dimen.design_bottom_sheet_peek_height_min)
             }
-            peekHeight = max(peekHeightMin, mParentHeight - parent.width * 9 / 16)
+            peekHeight = max(peekHeightMin, parentHeight - parent.width * 9 / 16)
         } else {
             peekHeight = this.peekHeight
         }
-        mMinOffset = max(0, mParentHeight - child.height)
-        maxOffset = max(mParentHeight - peekHeight, mMinOffset)
+        minOffset = max(0, parentHeight - child.height)
+        maxOffset = max(parentHeight - peekHeight, minOffset)
 
         if (state === BottomSheetState.STATE_EXPANDED) {
-            ViewCompat.offsetTopAndBottom(child, mMinOffset)
+            ViewCompat.offsetTopAndBottom(child, minOffset)
         } else if (hideable && state === BottomSheetState.STATE_HIDDEN) {
-            ViewCompat.offsetTopAndBottom(child, mParentHeight)
+            ViewCompat.offsetTopAndBottom(child, parentHeight)
         } else if (state === BottomSheetState.STATE_COLLAPSED) {
-            ViewCompat.offsetTopAndBottom(child, if (initialHeight == 0) maxOffset else mParentHeight - initialHeight)
+            ViewCompat.offsetTopAndBottom(child, if (initialHeight == 0) maxOffset else parentHeight - initialHeight)
         } else if (state === BottomSheetState.STATE_DRAGGING || state === BottomSheetState.STATE_SETTLING) {
             ViewCompat.offsetTopAndBottom(child, savedTop - child.top)
         }
@@ -281,26 +241,8 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
             viewDragHelper = ViewDragHelper.create(parent, mDragCallback)
         }
         viewRef = WeakReference(child)
-        nestedScrollingChildRef = WeakReference<View>(findScrollingChild(child))
+        nestedScrollingChildRef = WeakReference<View>(child.findFirstScrollingChild())
         return true
-    }
-
-    private fun findScrollingChild(view: View): View? {
-        if (view is NestedScrollingChild) {
-            return view
-        }
-        if (view is ViewGroup) {
-            var i = 0
-            val count = view.childCount
-            while (i < count) {
-                val scrollingChild = findScrollingChild(view.getChildAt(i))
-                if (scrollingChild != null) {
-                    return scrollingChild
-                }
-                i++
-            }
-        }
-        return null
     }
 
     override fun onInterceptTouchEvent(parent: CoordinatorLayout, child: V, event: MotionEvent): Boolean {
@@ -396,8 +338,8 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         val currentTop = child.top
         val newTop = currentTop - dy
         if (dy > 0) { // Upward
-            if (newTop < mMinOffset) {
-                consumed[1] = currentTop - mMinOffset
+            if (newTop < minOffset) {
+                consumed[1] = currentTop - minOffset
                 ViewCompat.offsetTopAndBottom(child, -consumed[1])
                 setStateInternal(BottomSheetState.STATE_EXPANDED)
             } else {
@@ -424,66 +366,73 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
     }
 
     override fun onStopNestedScroll(coordinatorLayout: CoordinatorLayout, child: V, target: View) {
-        if (child.top == mMinOffset) {
+        if (child.top == minOffset) {
             setStateInternal(BottomSheetState.STATE_EXPANDED)
             return
         }
         if (target !== nestedScrollingChildRef?.get() || !nestedScrolled) {
             return
         }
-        val top: Int
+        val pxFromBottom = child.height - child.top
 
-        val currentTop = child.top
-        val pxFromBottom = child.height - currentTop
-
-        val targetState: BottomSheetState
-        if (lastNestedScrollDy > 0) { // Moving up
-
-            if (pxFromBottom > peekHeightBig) {
-                top = mMinOffset
-                targetState = BottomSheetState.STATE_EXPANDED
-            } else {
-                top = child.height - peekHeightBig
-                targetState = BottomSheetState.STATE_COLLAPSED
-            }
+        val viewDragReleasedState = if (lastNestedScrollDy > 0) { // Moving up
+            onDragReleaseMovingUp(child, pxFromBottom)
         } else if (hideable && shouldHide(child, yVelocity)) {
-            top = mParentHeight
-            targetState = BottomSheetState.STATE_HIDDEN
+            ViewDragReleasedState(top = parentHeight,
+                    targetState = BottomSheetState.STATE_HIDDEN)
         } else if (lastNestedScrollDy.toFloat() == 0f) {
-            when {
-                pxFromBottom in 1 until peekHeightBig -> {
-                    top = child.height - peekHeightSmall
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                }
-                pxFromBottom < peekHeightBig -> {
-                    top = child.height - peekHeightBig
-                    targetState = BottomSheetState.STATE_COLLAPSED
-                }
-                else -> {
-                    top = mMinOffset
-                    targetState = BottomSheetState.STATE_EXPANDED
-                }
-            }
+            onNoDragRelease(child, pxFromBottom)
         } else {
-            if (pxFromBottom in 1 until peekHeightBig) {
-                top = maxOffset
-                targetState = BottomSheetState.STATE_COLLAPSED
-            } else {
-                top = child.height - peekHeightBig
-                targetState = BottomSheetState.STATE_COLLAPSED
-            }
+            onDragReleaseMovingDown(child, pxFromBottom)
         }
 
-        if (viewDragHelper!!.smoothSlideViewTo(child, child.left, top)) {
+        if (viewDragHelper!!.smoothSlideViewTo(child, child.left, viewDragReleasedState.top)) {
             setStateInternal(BottomSheetState.STATE_SETTLING)
-            ViewCompat.postOnAnimation(child, SettleRunnable(child, targetState))
+            ViewCompat.postOnAnimation(child, SettleRunnable(child, viewDragReleasedState.targetState))
         } else {
-            setStateInternal(targetState)
+            setStateInternal(viewDragReleasedState.targetState)
         }
 
         nestedScrolled = false
     }
 
+    private fun onDragReleaseMovingUp(releasedChild: View, pxFromBottom: Int): ViewDragReleasedState {
+        return if (pxFromBottom > peekHeightBig) {
+            ViewDragReleasedState(top = minOffset,
+                    targetState = BottomSheetState.STATE_EXPANDED)
+        } else {
+            ViewDragReleasedState(top = releasedChild.height - peekHeightBig,
+                    targetState = BottomSheetState.STATE_COLLAPSED)
+        }
+    }
+
+    private fun onNoDragRelease(releasedChild: View, pxFromBottom: Int): ViewDragReleasedState {
+        // user did not release dragged view with any speed (no flinching)
+        return when {
+            pxFromBottom in 1 until peekHeightBig -> {
+                ViewDragReleasedState(top = releasedChild.height - peekHeightSmall,
+                        targetState = BottomSheetState.STATE_COLLAPSED)
+            }
+            pxFromBottom < peekHeightBig -> {
+                ViewDragReleasedState(top = releasedChild.height - peekHeightBig,
+                        targetState = BottomSheetState.STATE_COLLAPSED)
+            }
+            else -> {
+                ViewDragReleasedState(top = minOffset,
+                        targetState = BottomSheetState.STATE_EXPANDED)
+            }
+        }
+    }
+
+    private fun onDragReleaseMovingDown(releasedChild: View, pxFromBottom: Int): ViewDragReleasedState {
+        return if (pxFromBottom in 1 until peekHeightBig) {
+            ViewDragReleasedState(top = maxOffset,
+                    targetState = BottomSheetState.STATE_COLLAPSED)
+        } else {
+            ViewDragReleasedState(top = releasedChild.height - peekHeightBig,
+                    targetState = BottomSheetState.STATE_COLLAPSED)
+        }
+    }
 
     override fun onNestedPreFling(coordinatorLayout: CoordinatorLayout, child: V, target: View,
                                   velocityX: Float, velocityY: Float): Boolean {
@@ -534,7 +483,6 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         } else if (peekHeightAuto || this.peekHeight != peekHeight) {
             peekHeightAuto = false
             this.peekHeight = max(0, peekHeight)
-            //            maxOffset = mParentHeight - peekHeight;
             layout = true
         }
         if (layout && state === BottomSheetState.STATE_COLLAPSED && viewRef != null) {
@@ -640,7 +588,7 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
     }
 
     internal fun startAnimation(child: View, pixels: Int, collapsedSmall: Int, collapsedBig: Int, setHeights: Boolean) {
-        if (viewDragHelper!!.smoothSlideViewTo(child, child.left, mParentHeight - pixels, 300)) {
+        if (viewDragHelper!!.smoothSlideViewTo(child, child.left, parentHeight - pixels, 300)) {
             setStateInternal(BottomSheetState.STATE_SETTLING)
             ViewCompat.postOnAnimation(child) {
                 SettleRunnable(child, BottomSheetState.STATE_COLLAPSED).run()
@@ -684,7 +632,7 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         }
     }
 
-    internal fun shouldHide(child: View, yVel: Float): Boolean {
+    private fun shouldHide(child: View, yVel: Float): Boolean {
         if (skipCollapsed) {
             return true
         }
@@ -696,7 +644,7 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         return abs(newTop - maxOffset) / peekHeight.toFloat() > HIDE_THRESHOLD
     }
 
-    internal fun startSettlingAnimation(child: View?, state: BottomSheetState) {
+    private fun startSettlingAnimation(child: View?, state: BottomSheetState) {
         var top: Int
         if (state === BottomSheetState.STATE_COLLAPSED) {
             top = child!!.height - peekHeightBig
@@ -706,9 +654,9 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
                 top = child.height - peekHeightSmall
             }
         } else if (state === BottomSheetState.STATE_EXPANDED) {
-            top = mMinOffset
+            top = minOffset
         } else if (hideable && state === BottomSheetState.STATE_HIDDEN) {
-            top = mParentHeight
+            top = parentHeight
         } else {
             return
             // throw new IllegalArgumentException("Illegal state argument: " + state);
@@ -722,12 +670,12 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
     internal fun dispatchOnSlide(top: Int) {
         val bottomSheet = viewRef?.get()
         if (bottomSheet != null && callback != null) {
-            val maxOffset = max(mParentHeight - peekHeightBig, mParentHeight - peekHeightMin)
+            val maxOffset = max(parentHeight - peekHeightBig, parentHeight - peekHeightMin)
             if (top > maxOffset) {
-                callback!!.onSlide(bottomSheet, (maxOffset - top).toFloat() / (mParentHeight - maxOffset))
+                callback!!.onSlide(bottomSheet, (maxOffset - top).toFloat() / (parentHeight - maxOffset))
             } else {
                 callback!!.onSlide(bottomSheet,
-                        (this.maxOffset - top).toFloat() / (this.maxOffset - mMinOffset))
+                        (this.maxOffset - top).toFloat() / (this.maxOffset - minOffset))
             }
         }
     }
@@ -745,12 +693,11 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
     }
 
     override fun setAutoInitHeight() {
-        if (viewRef != null) {
-            val child = viewRef?.get()
-            if (child != null && state === BottomSheetState.STATE_COLLAPSED) {
-                val bigTop = child.height - peekHeightBig
+        viewRef?.get()?.let {
+            if (state === BottomSheetState.STATE_COLLAPSED) {
+                val bigTop = it.height - peekHeightBig
 
-                if (child.top == bigTop) {
+                if (it.top == bigTop) {
                     setInitialHeight(peekHeightBig)
                 } else {
                     setInitialHeight(peekHeightSmall)
@@ -774,51 +721,7 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         }
     }
 
-    protected class SavedState : AbsSavedState {
-        internal val state: BottomSheetState
-
-        internal val peekHeightBig: Int
-        internal val peekHeightSmall: Int
-        internal val peekHeight: Int
-
-        @JvmOverloads
-        constructor(source: Parcel, loader: ClassLoader? = null) : super(source, loader) {
-
-            state = BottomSheetState.valueOf(source.readString())
-            peekHeightBig = source.readInt()
-            peekHeightSmall = source.readInt()
-            peekHeight = source.readInt()
-        }
-
-        constructor(superState: Parcelable, state: BottomSheetState, peekBig: Int, peekSmall: Int, peek: Int) : super(superState) {
-            this.state = state
-            this.peekHeightBig = peekBig
-            this.peekHeightSmall = peekSmall
-            this.peekHeight = peek
-        }
-
-        override fun writeToParcel(out: Parcel, flags: Int) {
-            super.writeToParcel(out, flags)
-            out.writeString(state.name)
-            out.writeInt(peekHeightBig)
-            out.writeInt(peekHeightSmall)
-            out.writeInt(peekHeight)
-        }
-
-        companion object {
-            @JvmField
-            val CREATOR: Parcelable.Creator<SavedState> = ParcelableCompat.newCreator(
-                    object : ParcelableCompatCreatorCallbacks<SavedState> {
-                        override fun createFromParcel(`in`: Parcel, loader: ClassLoader): SavedState {
-                            return SavedState(`in`, loader)
-                        }
-
-                        override fun newArray(size: Int): Array<SavedState?> {
-                            return arrayOfNulls(size)
-                        }
-                    })
-        }
-    }
+    private data class ViewDragReleasedState(val top: Int, val targetState: BottomSheetState)
 
     companion object {
 
@@ -834,11 +737,13 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         private const val HIDE_THRESHOLD = 0.5f
         private const val HIDE_FRICTION = 0.1f
 
+        private const val SCROLL_DIRECTION_UP = -1
+
         /**
-         * A utility function to get the [BottomSheetTwoStatesBehaviour] associated with the `view`.
+         * A utility function to get the [BottomSheetTwoStatesBehaviour] associated with the view.
          *
          * @param view The [View] with [BottomSheetTwoStatesBehaviour].
-         * @return The [BottomSheetTwoStatesBehaviour] associated with the `view`.
+         * @return The [BottomSheetTwoStatesBehaviour] associated with the view.
          */
         fun <V : View> from(view: V): BottomSheetTwoStatesBehaviour<V> {
             val params = view.layoutParams

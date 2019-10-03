@@ -5,6 +5,8 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.ColorInt
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.NestedScrollingChild
 
 /**
  * @author Andrej Martinák <andrej.martinak@eman.cz>
@@ -51,4 +53,25 @@ fun Activity.updateStatusBarColor(@ColorInt color: Int) {
  */
 fun Activity.setNavigationBarColor(@ColorInt color: Int) {
     this.window.navigationBarColor = color
+}
+
+/**
+ * Returns first [NestedScrollingChild] of a ViewGroup, or null
+ */
+fun View.findFirstScrollingChild(): View? {
+    if (this is NestedScrollingChild) {
+        return this
+    }
+    if (this is ViewGroup) {
+        var i = 0
+        val count = this.childCount
+        while (i < count) {
+            val scrollingChild = this.getChildAt(i).findFirstScrollingChild()
+            if (scrollingChild != null) {
+                return scrollingChild
+            }
+            i++
+        }
+    }
+    return null
 }
