@@ -5,7 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 
 /**
- * Interface which out view must implement on order to work properly with [cz.eman.android.bottomsheet.core.BottomSheetTwoStatesBehaviour]
+ * Interface which out view must implement on order to work properly with [cz.eman.android.bottomsheet.core.BottomSheetTwoStatesBehavior]
  * @author Michal [michal.mrocek@eman.cz] on 14.02.18.
  * @author Andrej Martinák <andrej.martinak@eman.cz>
  */

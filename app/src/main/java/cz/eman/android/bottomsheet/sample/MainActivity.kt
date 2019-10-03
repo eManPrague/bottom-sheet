@@ -1,6 +1,5 @@
 package cz.eman.android.bottomsheet.sample
 
-import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
@@ -8,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import android.view.ViewGroup
 
-import cz.eman.android.bottomsheet.core.BottomSheetTwoStatesBehaviour
+import cz.eman.android.bottomsheet.core.BottomSheetTwoStatesBehavior
 import cz.eman.android.bottomsheet.manipulation.SheetsHelper
 import cz.eman.android.bottomsheet.manipulation.SheetsHelperView
 import cz.eman.android.bottomsheet.utils.setDarkStatusBarIcons
@@ -17,7 +16,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), SheetsHelperView {
 
-    private lateinit var behaviour: BottomSheetTwoStatesBehaviour<*>
+    private lateinit var behavior: BottomSheetTwoStatesBehavior<*>
     private lateinit var helper: SheetsHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,14 +31,14 @@ class MainActivity : AppCompatActivity(), SheetsHelperView {
      * Call to initialize sheet
      */
     private fun attachSheet() {
-        behaviour = BottomSheetTwoStatesBehaviour.from(bottomSheet)
+        behavior = BottomSheetTwoStatesBehavior.from(bottomSheet)
         helper = SheetsHelper.Builder(this, this)
                 .setCollapsedHeight(resources.getDimensionPixelSize(R.dimen.sheet_collapsed_height))
                 .setSemiCollapsedHeight(resources.getDimensionPixelSize(R.dimen.sheet_semicollapsed_height))
                 .build()
 
 
-        helper.init(bottomSheet, behaviour) // allows swipe between two collapsed states
+        helper.init(bottomSheet, behavior) // allows swipe between two collapsed states
 //         helper.initSemiCollapsed(bottomSheet, behaviour); // just one collapsed state - semi collapsed
 //         helper.initCollapsed(bottomSheet, behaviour); // just one collapsed state - collapsed
     }

@@ -1,7 +1,7 @@
 package cz.eman.android.bottomsheet.core
 
 /**
- * Interface for communication with [BottomSheetTwoStatesBehaviour]
+ * Interface for communication with [BottomSheetTwoStatesBehavior]
  * @author Michal [michal.mrocek@eman.cz] on 14.07.17.
  * @author Andrej Martinák <andrej.martinak@eman.cz>
  */

@@ -36,7 +36,7 @@ import kotlin.math.max
  * An interaction behavior plugin for a child view of [CoordinatorLayout] to make it work as
  * a bottom sheet.
  */
-class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: AttributeSet)
+class BottomSheetTwoStatesBehavior<V : View>(context: Context, attrs: AttributeSet)
     : CoordinatorLayout.Behavior<V>(context, attrs), BottomSheet {
 
     /**
@@ -740,18 +740,18 @@ class BottomSheetTwoStatesBehaviour<V : View>(context: Context, attrs: Attribute
         private const val SCROLL_DIRECTION_UP = -1
 
         /**
-         * A utility function to get the [BottomSheetTwoStatesBehaviour] associated with the view.
+         * A utility function to get the [BottomSheetTwoStatesBehavior] associated with the view.
          *
-         * @param view The [View] with [BottomSheetTwoStatesBehaviour].
-         * @return The [BottomSheetTwoStatesBehaviour] associated with the view.
+         * @param view The [View] with [BottomSheetTwoStatesBehavior].
+         * @return The [BottomSheetTwoStatesBehavior] associated with the view.
          */
-        fun <V : View> from(view: V): BottomSheetTwoStatesBehaviour<V> {
+        fun <V : View> from(view: V): BottomSheetTwoStatesBehavior<V> {
             val params = view.layoutParams
             require(params is CoordinatorLayout.LayoutParams) { "The view is not a child of CoordinatorLayout" }
 
             val behavior = params.behavior
-            require(behavior is BottomSheetTwoStatesBehaviour<*>) { "The view is not associated with BottomSheetBehavior" }
-            return behavior as BottomSheetTwoStatesBehaviour<V>
+            require(behavior is BottomSheetTwoStatesBehavior<*>) { "The view is not associated with BottomSheetBehavior" }
+            return behavior as BottomSheetTwoStatesBehavior<V>
         }
     }
 }
