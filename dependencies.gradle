@@ -15,7 +15,7 @@ ext {
             encoding           : "UTF-8",
 
             // gradle
-            gradleBuildTools   : '3.5.0',
+            gradleBuildTools   : '3.5.1',
             gradle             : '5.6.2',
 
             //kotlin
