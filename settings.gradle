@@ -1,1 +1,1 @@
-include ':app', ':sheet'
+include ':app', ':sheet', ":buildSrc"
