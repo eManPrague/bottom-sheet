@@ -1,12 +1,19 @@
-package cz.eman.android.bottomsheet.core;
-
-import android.support.annotation.Nullable;
+package cz.eman.android.bottomsheet.core
 
 /**
- * Interface for communication with {@link BottomSheetTwoStatesBehaviour}
- * Created by Michal [michal.mrocek@eman.cz] on 14.07.17.
+ * Interface for communication with [BottomSheetTwoStatesBehavior]
+ * @author Michal [michal.mrocek@eman.cz] on 14.07.17.
+ * @author Andrej Martinák <andrej.martinak@eman.cz>
  */
-public interface BottomSheet {
+interface BottomSheet {
+
+    fun getPeekHeightSemiCollapsed(): Int
+
+    fun getPeekHeightCollapsed(): Int
+
+    fun setState(state: BottomSheetState)
+
+    fun getState(): BottomSheetState
 
     /**
      * Sets up two peek heights, first one must be smaller or equal to second
@@ -14,7 +21,7 @@ public interface BottomSheet {
      * @param smaller height in px
      * @param bigger  height in px
      */
-    void setPeekHeights(int smaller, int bigger);
+    fun setPeekHeights(smaller: Int, bigger: Int)
 
     /**
      * Sets up two peek heights, first one must be smaller or equal to second
@@ -23,7 +30,7 @@ public interface BottomSheet {
      * @param bigger           height in px
      * @param affectInitHeight true when initial height of bottom sheet should be affected
      */
-    void setPeekHeights(int smaller, int bigger, boolean affectInitHeight);
+    fun setPeekHeights(smaller: Int, bigger: Int, affectInitHeight: Boolean)
 
     /**
      * Sets up initial height of bottom sheet, pass just values that are equal to one of peek heights
@@ -31,43 +38,25 @@ public interface BottomSheet {
      *
      * @param height height in px
      */
-    void setInitialHeight(int height);
+    fun setInitialHeight(height: Int)
 
     /**
      * Sets callback for bottom sheet which reports sheet sliding and state changes
      * @param callback callback
      */
-    void setBottomSheetCallback(@Nullable BottomSheetCallback callback);
-
-    int getPeekHeightSemiCollapsed();
-
-    int getPeekHeightCollapsed();
-
-    void setPeekHeightSemiCollapsed(int heightSemiCollapsed);
+    fun setBottomSheetCallback(callback: BottomSheetCallback?)
 
     /**
      * Sets if sheet can be hidden = it can go lower than smallest of peek heights
      * @param hideable true if it should be hideable
      */
-    void setHideable(boolean hideable);
+    fun setHideable(hideable: Boolean)
 
     /**
      * Enabled or disables dragging
      * @param enabled true if enabled
      */
-    void setDragEnabled(boolean enabled);
-
-    /**
-     * @return current state of the bottom sheet
-     */
-    @BottomSheetTwoStatesBehaviour.State
-    int getState();
-
-    /**
-     * Sets state to bottom sheet
-     * @param state state
-     */
-    void setState(final @BottomSheetTwoStatesBehaviour.State int state);
+    fun setDragEnabled(enabled: Boolean)
 
     /**
      * Animates sheet to given height. After animation is done, visible part of the sheet
@@ -78,7 +67,7 @@ public interface BottomSheet {
      *
      * @param height target height
      */
-    void animateAndSetHeights(int height);
+    fun animateAndSetHeights(height: Int)
 
     /**
      * Animates sheet to given height. After animation is done, visible part of the sheet
@@ -88,11 +77,11 @@ public interface BottomSheet {
      * @param collapsedHeight new collapsed height for sheet
      * @param semiCollapsedHeight new semi collapsed height for sheet
      */
-    void animateAndSetHeights(int pixels, int collapsedHeight, int semiCollapsedHeight);
+    fun animateAndSetHeights(pixels: Int, collapsedHeight: Int, semiCollapsedHeight: Int)
 
     /**
      * Automatically selects initial height for sheet. This method takes to account just currently
      * set peek heights and selects best for current sheet state.
      */
-    void setAutoInitHeight();
+    fun setAutoInitHeight()
 }
