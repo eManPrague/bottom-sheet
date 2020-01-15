@@ -5,34 +5,51 @@ plugins {
 }
 
 android {
-    compileSdkVersion(Dependencies.Versions.compileSdk)
-    buildToolsVersion(Dependencies.Versions.buildTools)
+
+    compileSdkVersion(Android.compileSdk)
 
     defaultConfig {
-        applicationId = "cz.eman.android.bottomsheet.sample"
-        minSdkVersion(Dependencies.Versions.minSdk)
-        targetSdkVersion(Dependencies.Versions.targetSdk)
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId = Android.applicationId
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        minSdkVersion(Android.minSdk)
+        targetSdkVersion(Android.targetSdk)
+
+        versionCode = getGitCommits()
+        versionName = Android.versionName
+
+        testInstrumentationRunner = Android.testInstrumentRunner
     }
+
     buildTypes {
-        buildTypes {
-            getByName("release") {
-                isMinifyEnabled = false
-                proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
-            }
+        getByName("debug") {
+            isMinifyEnabled = false
         }
 
+        getByName("release") {
+            isMinifyEnabled = false
+        }
+    }
+
+    sourceSets {
+        getByName("main").java.srcDirs("src/main/kotlin")
+        getByName("test").java.srcDirs("src/test/kotlin")
+    }
+
+    compileOptions {
+        sourceCompatibility = Android.sourceCompatibilityJava
+        targetCompatibility = Android.targetCompatibilityJava
+    }
+
+    lintOptions {
+        setLintConfig(rootProject.file("lint.xml"))
     }
 }
 
 dependencies {
-    implementation(project(":sheet"))
+    implementation(project(":bottomsheet"))
 
+    implementation(Dependencies.Kotlin.stdlibJdk)
     // Support Libraries
-    implementation(Dependencies.SupportDependencies.appCompat)
-    implementation(Dependencies.SupportDependencies.design)
-    implementation(Dependencies.KotlinDependencies.kotlin)
+    implementation(Dependencies.Android.appCompat)
+    implementation(Dependencies.Android.materialDesign)
 }

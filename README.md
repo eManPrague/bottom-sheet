@@ -1,5 +1,7 @@
 # Bottom Sheet with two peek heights
 
+[ ![Download](https://api.bintray.com/packages/emanprague/maven/cz.eman.bottomsheet/images/download.svg?version=1.0.0) ](https://bintray.com/emanprague/maven/cz.eman.bottomsheet/1.0.0/link)
+
 This repository contains implementation of Google's Bottom Sheet which was modified to fully support two peek heights.
 
 ## Contents
@@ -10,10 +12,13 @@ Repository consists of two modules:
 
 ## Quickstart
 
-First of all link `sheet` module to your project.
+First of all add link `bottom-sheet` library to your project.
  
 ```groovy
-implementation project(':sheet')
+// Gradle Kotlin DSL
+implementation("cz.eman.bottomsheet:bottomsheet:1.0.0")
+// Groovy
+implementation 'cz.eman.bottomsheet:bottomsheet:1.0.0'
 ```
 
 Now let's create a layout for our view. You will need:
@@ -37,7 +42,7 @@ Here's sample:
         android:layout_height="match_parent"
         android:fitsSystemWindows="false"/>
         
-        <android.support.design.widget.CoordinatorLayout
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
             xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:app="http://schemas.android.com/apk/res-auto"
             android:id="@+id/coordinator_layout"
@@ -64,7 +69,7 @@ Here's sample:
 
             </LinearLayout>
             
-        </android.support.design.widget.CoordinatorLayout>
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
         
     </FrameLayout>
     
@@ -74,11 +79,11 @@ Here's sample:
 Then in your code initialize your sheet. You can do it manually, or you can use our handy `SheetHelper`. 
 By default you'll need to just specify two peek heights - collapsed (smaller) and semi-collapsed (bigger).
 
-```java
-SheetHelper helper = new SheetsHelper.Builder(this, this)
-    .setCollapsedHeight(getResources().getDimensionPixelSize(R.dimen.sheet_collapsed_height))
-    .setSemiCollapsedHeight(getResources().getDimensionPixelSize(R.dimen.sheet_semicollapsed_height))
-    .build();
+```kotlin
+val helper = SheetsHelper.Builder(context = this, sheetView = this).apply {
+        setCollapsedHeight(resources.getDimensionPixelSize(R.dimen.sheet_collapsed_height))
+        setSemiCollapsedHeight(resources.getDimensionPixelSize(R.dimen.sheet_semicollapsed_height))
+}.build()
 ```
 
 Then just attach sheet with helper depending on your desires.
@@ -86,20 +91,20 @@ Then just attach sheet with helper depending on your desires.
 - `SheetHelper#initSemiCollapsed(View, BottomSheet)` - initializes with only collapsed state (semi-collapsed) as defined in builder
 - `SheetHelper#initCollapsed(View, BottomSheet)` - initializes with only collapsed state (collapsed) as defined in builder
 
-```java
-helper.init(mBottomSheetView, mBottomSheetBehaviour);
-helper.initSemiCollapsed(mBottomSheetView, mBehaviour);
-helper.initCollapsed(mBottomSheetView, mBehaviour);
+```kotlin
+helper.init(bottomSheet, behavior)
+helper.initSemiCollapsed(bottomSheet, behavior)
+helper.initCollapsed(bottomSheet, behavior)
 ```
 
 Changing states is also really easy - image that your sheet now supports two collapsed states and you want to change it to just one bigger. No problem, call one of these:
 ```java
-helper.animateToSemiCollapsed();
-helper.restoreSemiCollapsedState();
+helper.animateToSemiCollapsed()
+helper.restoreSemiCollapsedState()
 ```
 
 Want to restore two collapsed states behaviour? Pick one of these:
-```java
-helper.animateToTwoStates();
-helper.restoreTwoStates();
+```kotlin
+helper.animateToTwoStates()
+helper.restoreTwoStates()
 ```

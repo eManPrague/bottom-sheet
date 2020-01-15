@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">sheet</string>
+    <string name="bottom_sheet_two_states">cz.eman.bottomsheet.core.BottomSheetTwoStatesBehavior</string>
+</resources>
